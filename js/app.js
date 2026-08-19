@@ -320,6 +320,7 @@ class WhatsAppChatApp {
       this.landingView.hide();
       document.getElementById('app-dashboard').classList.remove('hidden');
 
+      this.chatView.setParticipants(this.currentChat.participants);
       this.meSelector.setParticipants(this.currentChat.participants);
       this.filterController.populateParticipants(this.currentChat.participants);
 
@@ -355,6 +356,7 @@ class WhatsAppChatApp {
       onProgress
     });
 
+    this.chatView.setParticipants(this.currentChat.participants);
     this.meSelector.setParticipants(this.currentChat.participants);
     this.filterController.populateParticipants(this.currentChat.participants);
 

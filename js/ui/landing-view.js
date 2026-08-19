@@ -1,6 +1,8 @@
 /**
- * Landing Screen & Source File Selector Controller.
+ * Landing Screen, Password Gate & Source File Selector Controller.
  */
+
+const HARDCODED_PASSWORD = 'muffinladdu@#09';
 
 export class LandingView {
   /**
@@ -22,7 +24,7 @@ export class LandingView {
     this.sourceFilesListEl = this.container.querySelector('#source-files-list');
 
     this.initEvents();
-    this.fetchSourceFiles();
+    this.renderSourceSection();
   }
 
   initEvents() {
@@ -58,6 +60,61 @@ export class LandingView {
     });
   }
 
+  isUnlocked() {
+    return sessionStorage.getItem('wa_source_unlocked') === 'true';
+  }
+
+  renderSourceSection() {
+    if (!this.sourceFilesListEl) return;
+
+    if (this.isUnlocked()) {
+      this.fetchSourceFiles();
+    } else {
+      this.renderPasswordGate();
+    }
+  }
+
+  renderPasswordGate() {
+    this.sourceFilesListEl.innerHTML = `
+      <div class="password-gate-card" style="padding: 16px; background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: var(--radius-sm); margin-bottom: 8px;">
+        <p style="font-size: 12.5px; color: var(--text-secondary); margin-bottom: 10px; display: flex; align-items: center; gap: 6px;">
+          🔒 Enter password to access local <code>Source_file</code> export folder:
+        </p>
+        <div style="display: flex; gap: 8px;">
+          <input type="password" id="source-password-input" class="text-input" placeholder="Enter password..." style="flex: 1;" />
+          <button id="unlock-source-btn" class="btn btn-primary" style="padding: 6px 14px; font-size: 12px; white-space: nowrap;">
+            Unlock Files 🔓
+          </button>
+        </div>
+        <div id="password-error-msg" style="font-size: 11.5px; color: #ef4444; margin-top: 8px; display: none;">
+          ❌ Incorrect password. Access denied.
+        </div>
+      </div>
+    `;
+
+    const passInput = this.sourceFilesListEl.querySelector('#source-password-input');
+    const unlockBtn = this.sourceFilesListEl.querySelector('#unlock-source-btn');
+    const errorMsg = this.sourceFilesListEl.querySelector('#password-error-msg');
+
+    const tryUnlock = () => {
+      const val = passInput ? passInput.value : '';
+      if (val === HARDCODED_PASSWORD) {
+        sessionStorage.setItem('wa_source_unlocked', 'true');
+        this.fetchSourceFiles();
+      } else {
+        if (errorMsg) errorMsg.style.display = 'block';
+        if (passInput) passInput.focus();
+      }
+    };
+
+    if (unlockBtn) unlockBtn.addEventListener('click', tryUnlock);
+    if (passInput) {
+      passInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') tryUnlock();
+      });
+    }
+  }
+
   async fetchSourceFiles() {
     if (!this.sourceFilesListEl) return;
 
@@ -69,7 +126,7 @@ export class LandingView {
       } else {
         this.sourceFilesListEl.innerHTML = `
           <p style="font-size: 12px; color: var(--text-muted); padding: 10px;">
-            No saved memory files found yet.
+            No export files found in <code>Source_file</code> folder.
           </p>
         `;
       }
@@ -77,7 +134,7 @@ export class LandingView {
       console.log('Error fetching source files list:', e);
       this.sourceFilesListEl.innerHTML = `
         <p style="font-size: 12px; color: var(--text-muted); padding: 10px;">
-          Use the file box below to add a conversation memory.
+          Use the file box below to upload a WhatsApp export file.
         </p>
       `;
     }
@@ -86,15 +143,25 @@ export class LandingView {
   renderSourceFiles(files) {
     if (!files || files.length === 0) {
       this.sourceFilesListEl.innerHTML = `
-        <p style="font-size: 12px; color: var(--text-muted); padding: 10px; background: var(--bg-secondary); border-radius: var(--radius-sm);">
-          No saved memories found. Add one with the file picker below.
-        </p>
+        <div style="padding: 12px; background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: var(--radius-sm); display: flex; justify-content: space-between; align-items: center;">
+          <p style="font-size: 12px; color: var(--text-muted);">
+            No files found in <code>Source_file/</code> folder.
+          </p>
+          <button id="relock-btn" class="btn btn-secondary" style="padding: 4px 8px; font-size: 11px;">🔒 Lock</button>
+        </div>
       `;
+      const relockBtn = this.sourceFilesListEl.querySelector('#relock-btn');
+      if (relockBtn) {
+        relockBtn.addEventListener('click', () => {
+          sessionStorage.removeItem('wa_source_unlocked');
+          this.renderPasswordGate();
+        });
+      }
       return;
     }
 
-    this.sourceFilesListEl.innerHTML = files.map(file => `
-      <div class="source-file-card" style="display: flex; align-items: center; justify-content: space-between; padding: 12px 14px; background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: var(--radius-sm); margin-bottom: 8px; transition: border-color 0.2s ease;">
+    const filesHTML = files.map(file => `
+      <div class="source-file-card" style="display: flex; align-items: center; justify-content: space-between; padding: 12px 14px; background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: var(--radius-sm); margin-bottom: 8px;">
         <div style="display: flex; align-items: center; gap: 10px; overflow: hidden;">
           <span style="font-size: 20px;">📄</span>
           <div style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
@@ -102,15 +169,31 @@ export class LandingView {
               ${file.name}
             </div>
             <div style="font-size: 11px; color: var(--text-muted);">
-              Memory file • ${file.sizeFormatted}
+              File Size: ${file.sizeFormatted}
             </div>
           </div>
         </div>
         <button class="btn btn-primary load-source-btn" data-path="${file.path}" data-name="${file.name}" style="padding: 6px 14px; font-size: 12px; white-space: nowrap;">
-          Open Memory
+          Open Chat 🚀
         </button>
       </div>
     `).join('');
+
+    this.sourceFilesListEl.innerHTML = `
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+        <span style="font-size: 11px; color: #00a884; font-weight: 600;">🔓 Source Files Unlocked</span>
+        <button id="relock-btn" class="btn btn-secondary" style="padding: 3px 8px; font-size: 11px;">🔒 Lock</button>
+      </div>
+      ${filesHTML}
+    `;
+
+    const relockBtn = this.sourceFilesListEl.querySelector('#relock-btn');
+    if (relockBtn) {
+      relockBtn.addEventListener('click', () => {
+        sessionStorage.removeItem('wa_source_unlocked');
+        this.renderPasswordGate();
+      });
+    }
 
     const btns = this.sourceFilesListEl.querySelectorAll('.load-source-btn');
     btns.forEach(btn => {
@@ -150,7 +233,7 @@ export class LandingView {
 
   show() {
     this.container.classList.remove('hidden');
-    this.fetchSourceFiles();
+    this.renderSourceSection();
   }
 
   hide() {

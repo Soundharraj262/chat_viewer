@@ -30,21 +30,33 @@
 
 /* Row Containers - CRITICAL: align-items flex-start prevents vertical bubble stretching */
 .chat-message-row {
-  display: flex;
+  display: flex !important;
   align-items: flex-start !important;
   margin-bottom: 3px;
-  width: 100%;
+  width: 100% !important;
   padding: 0;
   box-sizing: border-box;
   height: auto !important;
 }
 
 .chat-message-row.me-row {
-  justify-content: flex-end;
+  justify-content: flex-end !important;
+  text-align: right !important;
 }
 
 .chat-message-row.other-row {
-  justify-content: flex-start;
+  justify-content: flex-start !important;
+  text-align: left !important;
+}
+
+.chat-message-row.other-row .chat-bubble {
+  margin-right: auto !important;
+  margin-left: 0 !important;
+}
+
+.chat-message-row.me-row .chat-bubble {
+  margin-left: auto !important;
+  margin-right: 0 !important;
 }
 
 .chat-message-row.system-row {
